@@ -204,7 +204,8 @@ const addClusterMap = (latitudeColumn, longitudeColumn) => {
     let map = L.map(el, {
         //center: latlng,
         zoom: 13,
-        layers: [tiles]
+        layers: [tiles],
+        urlHash: DATASETTE_CLUSTER_MAP_URL_HASH
     });
     const container = window.DATASETTE_CLUSTER_MAP_CONTAINER;
     if (container && document.querySelector(container)) {

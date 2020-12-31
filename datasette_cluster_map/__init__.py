@@ -31,10 +31,10 @@ def extra_css_urls(database, table, columns, view_name, datasette):
 
 
 @hookimpl
-def extra_js_urls(database, table, columns, view_name, datasette):
-    if not has_columns(database, table, columns, view_name, datasette):
+def extra_js_urls(database, database, table, columns, view_name, datasette):
+    if not has_columns(database, database, table, columns, view_name, datasette):
         return []
-    return [
+    urls = [
         {
             "url": "https://unpkg.com/leaflet@1.5.1/dist/leaflet.js",
             "sri": "sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==",
@@ -45,6 +45,13 @@ def extra_js_urls(database, table, columns, view_name, datasette):
         },
         "/-/static-plugins/datasette_cluster_map/datasette-cluster-map.js",
     ]
+    config = (
+        datasette.plugin_config("datasette-cluster-map", database=database, table=table)
+        or {}
+    )
+    if not config.get("disable_url_hash"):
+        urls.append("/-/static-plugins/datasette_cluster_map/leaflet-map-hash.js")
+    return urls
 
 
 @hookimpl
@@ -74,6 +81,11 @@ def extra_body_script(database, table, columns, view_name, datasette):
                     key.upper(), json.dumps(value)
                 )
             )
+    js.append(
+        "window.DATASETTE_CLUSTER_MAP_URL_HASH = {};".format(
+            "false" if config.get("disable_url_hash") else "true"
+        )
+    )
     return "\n".join(js)
 
 
