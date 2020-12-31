@@ -31,8 +31,8 @@ def extra_css_urls(database, table, columns, view_name, datasette):
 
 
 @hookimpl
-def extra_js_urls(database, database, table, columns, view_name, datasette):
-    if not has_columns(database, database, table, columns, view_name, datasette):
+def extra_js_urls(database, table, columns, view_name, datasette):
+    if not has_columns(database, table, columns, view_name, datasette):
         return []
     urls = [
         {
