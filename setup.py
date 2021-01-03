@@ -23,6 +23,6 @@ setup(
     version=VERSION,
     packages=["datasette_cluster_map"],
     entry_points={"datasette": ["cluster_map = datasette_cluster_map"]},
-    package_data={"datasette_cluster_map": ["static/datasette-cluster-map.js"]},
+    package_data={"datasette_cluster_map": ["static/datasette-cluster-map.js", "static/leaflet-map-hash.js"]},
     install_requires=["datasette"],
 )
