@@ -1,10 +1,31 @@
+const clusterMapCSS = `
+dl.cluster-map-dl dt {
+    font-weight: bold;
+}
+dl.cluster-map-dl dd {
+    margin: 0px 0 0 0.7em;
+}
+button.cluster-map-button {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+    vertical-align: middle;
+    cursor: pointer;
+    border: 1px solid blue;
+    padding: 0.3em 0.8em;
+    font-size: 0.6rem;
+    line-height: 1;
+    border-radius: .25rem;
+}
+`;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Only execute on table, query and row pages
     if (document.querySelector('body.table,body.row,body.query')) {
         // Does it have Latitude and Longitude columns?
         let columns = Array.prototype.map.call(
             document.querySelectorAll('table.rows-and-columns th'),
-            (th) => th.textContent.trim()
+            (th) => (th.getAttribute('data-column') || th.textContent).trim()
         );
         let latitudeColumn = null;
         let longitudeColumn = null;
@@ -71,17 +92,28 @@ const clusterMapMarkerContent = (row) => {
             return html.join('');
         }
     }
-    // Otherwise, use JSON.stringify
+    // Otherwise, use a <dl>
+    const dl = document.createElement('dl');
+    Object.keys(row).forEach(key => {
+        const dt = document.createElement('dt');
+        dt.appendChild(document.createTextNode(key));
+        const dd = document.createElement('dd');
+        dd.appendChild(document.createTextNode(row[key]));
+        dl.appendChild(dt);
+        dl.appendChild(dd);
+    });
     return (
-        '<pre style="height: 200px; overflow: auto">' +
-        clusterMapEscapeHTML(JSON.stringify(row, null, 4)) +
-        '</pre>'
+        '<dl class="cluster-map-dl" style="height: 200px; overflow: auto">' + dl.innerHTML + '</dl>'
     );
 };
 
 
 const addClusterMap = (latitudeColumn, longitudeColumn) => {
     let keepGoing = false;
+
+    let style = document.createElement('style');
+    style.innerText = clusterMapCSS;
+    document.head.appendChild(style);
 
     function isValid(latOrLon) {
         return !isNaN(parseFloat(latOrLon));
@@ -118,16 +150,7 @@ const addClusterMap = (latitudeColumn, longitudeColumn) => {
                 percent = ` (${Math.round((count / data.filtered_table_rows_count * 100) * 100) / 100}%)`;
                 // Add a control to either continue loading or pause
                 button = document.createElement('button');
-                button.style.color = '#fff';
-                button.style.backgroundColor = '#007bff';
-                button.style.borderColor = '#007bff';
-                button.style.verticalAlign = 'middle';
-                button.style.cursor = 'pointer';
-                button.style.border = '1px solid blue';
-                button.style.padding = '0.3em 0.8em';
-                button.style.fontSize = '0.6rem';
-                button.style.lineHeight = '1';
-                button.style.borderRadius = '.25rem';
+                button.classList.add('cluster-map-button');
                 if (keepGoing) {
                     button.innerHTML = 'pause';
                     button.addEventListener('click', () => {
@@ -169,20 +192,23 @@ const addClusterMap = (latitudeColumn, longitudeColumn) => {
     let el = document.createElement('div');
     el.style.width = '100%';
     el.style.height = '500px';
-    let tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        detectRetina: true,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }),
-    latlng = L.latLng(0, 0);
+    let tiles = L.tileLayer(
+        window.DATASETTE_CLUSTER_MAP_TILE_LAYER,
+        window.DATASETTE_CLUSTER_MAP_TILE_LAYER_OPTIONS
+    ), latlng = L.latLng(0, 0);
     let map = L.map(el, {
         //center: latlng,
         zoom: 13,
         layers: [tiles],
         urlHash: DATASETTE_CLUSTER_MAP_URL_HASH
     });
-    let table = document.querySelector('table.rows-and-columns');
-    table.parentNode.insertBefore(el, table);
+    const container = window.DATASETTE_CLUSTER_MAP_CONTAINER;
+    if (container && document.querySelector(container)) {
+        document.querySelector(container).appendChild(el);
+    } else {
+        let table = document.querySelector('.table-wrapper') || document.querySelector('table.rows-and-columns');
+        table.parentNode.insertBefore(el, table);
+    }
     let progressDiv = document.createElement('div');
     progressDiv.style.marginBottom = '2em';
     el.parentNode.insertBefore(progressDiv, el.nextSibling);
